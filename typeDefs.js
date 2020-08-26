@@ -17,7 +17,7 @@ module.exports = gql`
 		image: String
 		latitude: Float
 		longitude: Float
-		author: User
+		author: String
 		comments: [Comment]
 	}
 
@@ -33,6 +33,7 @@ module.exports = gql`
 		content: String
 		latitude: Float
 		longitude: Float
+		author:String
 	}
 
 	type Query {
@@ -43,5 +44,11 @@ module.exports = gql`
 	type Mutation {
 		createPin(input: CreatePinInput!): Pin
 		deletePin(pinId: ID!): Pin
+		createComment(pinId: ID!, text: String!): Pin
+	}
+
+	type Subcription{
+		pindAdded: Pin
+		pinDeleted: Pin
 	}
 `;

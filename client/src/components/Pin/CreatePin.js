@@ -1,5 +1,7 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios'
+import axios from 'axios';
+import { unstable_useMediaQuery as useMediaQuery } from '@material-ui/core/useMediaQuery';
+
 import { withStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
@@ -11,55 +13,65 @@ import SaveIcon from '@material-ui/icons/SaveTwoTone';
 
 import Context from '../../context';
 import { CREATE_PIN_MUTATION } from '../../graphql/mutations';
-import { useClient } from '../../client'
-
+import { useClient } from '../../client';
 
 const CreatePin = ({ classes }) => {
-  const client = useClient()
-  const {state, dispatch} = useContext(Context)
-  const [title, setTitle] = useState('')
-  const [image, setImage] = useState('')
-  const [content, setContent] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+	const mobileSize = useMediaQuery('(max-width: 650px)');
+	const client = useClient();
+	const { state, dispatch } = useContext(Context);
+	const [title, setTitle] = useState('');
+	const [image, setImage] = useState('');
+	const [content, setContent] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleDeleteDraft = () => {
-    dispatch({type:"DELETE_DRAFT"})
-  }
+	const handleDeleteDraft = () => {
+		dispatch({ type: 'DELETE_DRAFT' });
+	};
 
-  //using cloudinary
-  const handleImageUpload = async() =>{
-    const data = new FormData()
-    data.append("file",image)
-    data.append("upload_preset", "geopins")
-    data.append("cloud_name","yolxijaca")
+	//using cloudinary
+	const handleImageUpload = async () => {
+		const data = new FormData();
+		data.append('file', image);
+		data.append('upload_preset', 'geopins');
+		data.append('cloud_name', 'yolxijaca');
 
-    const res = await axios.post(
-      'https://api.cloudinary.com/v1_1/yolxijaca/image/upload',
-      data
-    )
-    return res.data.url
-  }
+		const res = await axios.post(
+			'https://api.cloudinary.com/v1_1/yolxijaca/image/upload',
+			data
+		);
+		return res.data.url;
+	};
 
-  const handleSubmit = async e => {
-      try{
+	const handleSubmit = async (e) => {
+		try {
+			e.preventDefault();
+			setIsSubmitting(true);
 
-        e.preventDefault()
-      setIsSubmitting(true)
+			const url = await handleImageUpload();
 
-
-      const url = await handleImageUpload()
-
-      const {latitude,  longitude } = state.draft
-      const variables = {title, image: url, content, latitude, longitude}
-      const {createPin} = await client.request(CREATE_PIN_MUTATION, variables)
-      console.log("pin created", {createPin})
-      dispatch({type:"CREATE_PIN", payload:createPin})
-      handleDeleteDraft()
-      }catch(err){
-        setIsSubmitting(false)
-        console.error("Error creating pin", err)
-      }
-    }
+			const { latitude, longitude } = state.draft;
+			const author = state.currentUser.name;
+			
+			const variables = {
+				title,
+				image: url,
+				content,
+				latitude,
+				longitude,
+				author,
+			};
+			const { createPin } = await client.request(
+				CREATE_PIN_MUTATION,
+				variables
+			);
+			console.log('pin created', { createPin });
+			dispatch({ type: 'CREATE_PIN', payload: createPin });
+			handleDeleteDraft();
+		} catch (err) {
+			setIsSubmitting(false);
+			console.error('Error creating pin', err);
+		}
+	};
 
 	return (
 		<form className={classes.form}>
@@ -73,21 +85,28 @@ const CreatePin = ({ classes }) => {
 			</Typography>
 
 			<div>
-        <TextField name="title" label="Title" placeholder="Insert pin title" 
-        onChange={e=> setTitle(e.target.value)}/>
+				<TextField
+					name="title"
+					label="Title"
+					placeholder="Insert pin title"
+					onChange={(e) => setTitle(e.target.value)}
+				/>
 
 				<input
 					accept="image/"
 					id="image"
 					type="file"
-          className={classes.input}
-          onChange={e => setImage(e.target.files[0])}
+					className={classes.input}
+					onChange={(e) => setImage(e.target.files[0])}
 				/>
 
 				<label htmlFor="image">
-          <Button 
-          style={{color: image && "green"}}
-          component="span" size="small" className={classes.button}>
+					<Button
+						style={{ color: image && 'green' }}
+						component="span"
+						size="small"
+						className={classes.button}
+					>
 						<AddAPhotoIcon />
 					</Button>
 				</label>
@@ -97,31 +116,34 @@ const CreatePin = ({ classes }) => {
 					name="content"
 					label="Content"
 					multiline
-					rows="6"
+					rows={mobileSize? "3" : "6" }
 					margin="normal"
 					fullWidth
-          variant="outlined"
-          onChange={e => setContent(e.target.value)}
+					variant="outlined"
+					onChange={(e) => setContent(e.target.value)}
 				/>
 			</div>
 			<div>
-        <Button
-        onClick={handleDeleteDraft}
-        className={classes.button} variant="contained" color="primary">
-        <ClearIcon className={classes.leftIcon} />
+				<Button
+					onClick={handleDeleteDraft}
+					className={classes.button}
+					variant="contained"
+					color="primary"
+				>
+					<ClearIcon className={classes.leftIcon} />
 					Discard
 				</Button>
 
-        <Button 
-        type="submit" 
-        className={classes.button} 
-        variant="contained" 
-        color="secondary"
-        disabled={!title.trim() || !content.trim() || !image ||  isSubmitting}
-        onClick={handleSubmit}
-        >
-          Submit
-        <SaveIcon className={classes.rightIcon} />
+				<Button
+					type="submit"
+					className={classes.button}
+					variant="contained"
+					color="secondary"
+					disabled={!title.trim() || !content.trim() || !image || isSubmitting}
+					onClick={handleSubmit}
+				>
+					Submit
+					<SaveIcon className={classes.rightIcon} />
 				</Button>
 			</div>
 		</form>
